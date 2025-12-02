@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.2                                     ║"
+echo "║          Version: v2.1.3                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -130,8 +130,24 @@ mysql -e "FLUSH PRIVILEGES;"
 # Run migrations & seed
 cd /var/www/skylight/panel
 sudo -u skylight php artisan migrate --seed --force
-sudo -u skylight php artisan p:environment:setup --url=https://$(curl -s ifconfig.me) --timezone=UTC --cache=redis --session=redis
-sudo -u skylight php artisan p:environment:database
+
+# Non-interactive environment setup
+DOMAIN=$(curl -s ifconfig.me)
+sudo -u skylight php artisan p:environment:setup <<EOF
+$DOMAIN
+UTC
+redis
+redis
+redis
+EOF
+
+sudo -u skylight php artisan p:environment:database <<EOF
+127.0.0.1
+3306
+skylight
+skylight
+SuperSecureRandomPass123!
+EOF
 
 # Queue worker & scheduler
 crontab -u skylight -l 2>/dev/null || echo "* * * * * php /var/www/skylight/panel/artisan schedule:run >> /dev/null 2>&1" | crontab -u skylight -
@@ -165,7 +181,6 @@ systemctl daemon-reload
 systemctl enable --now skylight-wings
 
 # Nginx config (auto-detect domain or IP)
-DOMAIN=$(curl -s ifconfig.me)
 cat > /etc/nginx/sites-available/skylight <<EOF
 server {
     listen 80;
