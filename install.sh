@@ -13,7 +13,6 @@ echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
-
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -41,10 +40,14 @@ apt install -y software-properties-common ca-certificates lsb-release apt-transp
     gnupg2 ubuntu-keyring tar unzip git nginx mariadb-server redis-server \
     certbot python3-certbot-nginx composer
 
+# Clean old sury repo files to avoid 418 errors
+echo -e "${YELLOW}Cleaning old PHP repo files...${NC}"
+rm -f /etc/apt/sources.list.d/php.list /usr/share/keyrings/sury-php*
+
 # PHP 8.3 via official PPA (better for Ubuntu)
 echo -e "${YELLOW}Adding PHP PPA repository...${NC}"
 add-apt-repository ppa:ondrej/php -y
-apt update
+apt update || true  # Non-fatal in case of warnings
 
 # Install PHP 8.3 packages explicitly
 apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis
@@ -160,7 +163,7 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
 # SSL with Let's Encrypt (optional but automatic)
-echo -e "${YELLOW}Setting up SSL (this will ask for your email)...${NC}"
+echo -e "${YELLOW}Setting up SSL (this will ask for your email if interactive)...${NC}"
 certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
 
 # Final permissions
@@ -170,13 +173,13 @@ chmod -R 755 /var/www/skylight
 # Done
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                SKYLIGHT IS NOW LIVE!                         ║"
-echo "║                                                              ║"
-echo "║   Panel URL: https://$DOMAIN                                 ║"
-echo "║   First user: admin@admin.com                                ║"
-echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)            ║"
-echo "║                                                              ║"
-echo "║   Wings is running — add this node in the admin panel        ║"
+echo "║                SKYLIGHT IS NOW LIVE!                        ║"
+echo "║                                                             ║"
+echo "║   Panel URL: https://$DOMAIN                                ║"
+echo "║   First user: admin@admin.com                               ║"
+echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)           ║"
+echo "║                                                             ║"
+echo "║   Wings is running — add this node in the admin panel       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 echo "Next steps:"
