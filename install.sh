@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.1                                     ║"
+echo "║          Version: v2.1.2                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -120,7 +120,9 @@ sudo -u skylight php artisan key:generate
 echo -e "${YELLOW}Setting up MariaDB...${NC}"
 systemctl enable --now mariadb redis-server
 
+mysql -e "DROP DATABASE IF EXISTS skylight;"
 mysql -e "CREATE DATABASE skylight;"
+mysql -e "DROP USER IF EXISTS 'skylight'@'127.0.0.1';"
 mysql -e "CREATE USER 'skylight'@'127.0.0.1' IDENTIFIED BY 'SuperSecureRandomPass123!';"
 mysql -e "GRANT ALL PRIVILEGES ON skylight.* TO 'skylight'@'127.0.0.1';"
 mysql -e "FLUSH PRIVILEGES;"
