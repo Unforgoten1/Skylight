@@ -81,6 +81,10 @@ if ! id "skylight" &>/dev/null; then
     useradd -r -m -d /var/www/skylight -s /bin/bash skylight
 fi
 
+# Clean existing installation directory if it exists
+echo -e "${YELLOW}Cleaning existing Skylight directory if present...${NC}"
+rm -rf /var/www/skylight
+
 # Clone Skylight Panel (use Pelican for now until fork is ready)
 echo -e "${YELLOW}Cloning Skylight Panel...${NC}"
 sudo -u skylight git clone https://github.com/pelican-dev/panel.git /var/www/skylight/panel
