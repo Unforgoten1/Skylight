@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.0                                     ║"
+echo "║          Version: v2.1.1                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -128,7 +128,7 @@ mysql -e "FLUSH PRIVILEGES;"
 # Run migrations & seed
 cd /var/www/skylight/panel
 sudo -u skylight php artisan migrate --seed --force
-sudo -u skylight php artisan p:environment:setup --author=admin@skylight.host --url=https://$(curl -s ifconfig.me) --timezone=UTC --cache=redis --session=redis
+sudo -u skylight php artisan p:environment:setup --url=https://$(curl -s ifconfig.me) --timezone=UTC --cache=redis --session=redis
 sudo -u skylight php artisan p:environment:database
 
 # Queue worker & scheduler
