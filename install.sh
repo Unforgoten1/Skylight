@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.0.9                                     ║"
+echo "║          Version: v2.1.0                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -74,9 +74,13 @@ echo -e "${YELLOW}Installing Node.js 22...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 
-# Verify npm is available (should be)
-if ! command -v npm &> /dev/null; then
-    echo -e "${RED}npm not found after Node install! Aborting.${NC}"
+# Install Yarn globally
+echo -e "${YELLOW}Installing Yarn...${NC}"
+npm install -g yarn
+
+# Verify yarn is available
+if ! command -v yarn &> /dev/null; then
+    echo -e "${RED}Yarn not found after install! Aborting.${NC}"
     exit 1
 fi
 
@@ -103,10 +107,10 @@ sudo -u skylight git checkout main
 echo -e "${YELLOW}Running Composer...${NC}"
 sudo -u skylight composer install --no-dev --optimize-autoloader
 
-# Install Node deps + build
+# Install Node deps + build with Yarn
 echo -e "${YELLOW}Building frontend (this can take 2-3 mins)...${NC}"
-sudo -u skylight npm ci
-sudo -u skylight npm run build
+sudo -u skylight yarn install
+sudo -u skylight yarn run build
 
 # Environment setup
 sudo -u skylight cp .env.example .env
