@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.4                                     ║"
+echo "║          Version: v2.1.5                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -117,6 +117,9 @@ sudo -u skylight cp .env.example .env
 sudo -u skylight php artisan key:generate
 
 DOMAIN=$(curl -s ifconfig.me)
+if [[ $DOMAIN == *":"* ]]; then
+    DOMAIN="[$DOMAIN]"
+fi
 
 sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|g" .env
 sudo -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
