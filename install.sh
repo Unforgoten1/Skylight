@@ -7,7 +7,9 @@
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                  S K Y L I G H T   v2.0.0                    ║"
+echo "║                         S K Y L I G H T                      ║"
+echo "║          Version: v2.0.0                                     ║"
+echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
@@ -33,11 +35,11 @@ fi
 echo -e "${YELLOW}Updating system...${NC}"
 apt update && apt upgrade -y
 
-# Install dependencies
+# Install dependencies (removed npm - it's bundled with nodejs)
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt install -y software-properties-common ca-certificates lsb-release apt-transport-https \
     gnupg2 ubuntu-keyring tar unzip git nginx mariadb-server redis-server \
-    certbot python3-certbot-nginx composer npm
+    certbot python3-certbot-nginx composer
 
 # PHP 8.3 (Pelican loves it) - explicit list to avoid any expansion issues
 echo -e "${YELLOW}Adding PHP 8.3 repository...${NC}"
@@ -46,10 +48,16 @@ echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org
 apt update
 apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis
 
-# Node 20
-echo -e "${YELLOW}Installing Node.js 20...${NC}"
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+# Node 22 (bumped for your system; Pelican works fine with it)
+echo -e "${YELLOW}Installing Node.js 22...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
+
+# Verify npm is available (should be)
+if ! command -v npm &> /dev/null; then
+    echo -e "${RED}npm not found after Node install! Aborting.${NC}"
+    exit 1
+fi
 
 # Create skylight user
 if ! id "skylight" &>/dev/null; then
