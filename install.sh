@@ -1,13 +1,13 @@
 #!/bin/bash
 # ===================================================================
 #  Skylight Installer — One-click Pelican fork (December 2025)
-#  Just run: bash <(curl -sSL https://install.skylight.host)
+#  Just run: bash <(curl -sSL https://raw.githubusercontent.com/Unforgoten1/Skylight/main/install.sh)
 # ===================================================================
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                  S K Y L I G H T   v2.0.0                   ║
+echo "║                  S K Y L I G H T   v2.0.0                   ║"
 echo "║          The Pelican fork that actually feels next-gen      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
@@ -30,7 +30,7 @@ if ! command -v curl &> /dev/null || ! command -v wget &> /dev/null; then
 fi
 
 # System update
-echo -e "${YELLOW"Updating system...${NC}"
+echo -e "${YELLOW}Updating system...${NC}"
 apt update && apt upgrade -y
 
 # Install dependencies
@@ -39,12 +39,12 @@ apt install -y software-properties-common ca-certificates lsb-release apt-transp
     gnupg2 ubuntu-keyring tar unzip git nginx mariadb-server redis-server \
     certbot python3-certbot-nginx composer npm
 
-# PHP 8.3 (Pelican loves it)
+# PHP 8.3 (Pelican loves it) - explicit list to avoid any expansion issues
 echo -e "${YELLOW}Adding PHP 8.3 repository...${NC}"
 wget -qO- https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/sury-php.gpg
 echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
 apt update
-apt install -y php8.3 php8.3-{cli,fpm,mysql,zip,gd,mbstring,curl,xml,bcmath,redis}
+apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis
 
 # Node 20
 echo -e "${YELLOW}Installing Node.js 20...${NC}"
@@ -56,11 +56,11 @@ if ! id "skylight" &>/dev/null; then
     useradd -r -m -d /var/www/skylight -s /bin/bash skylight
 fi
 
-# Clone Skylight Panel (our fork)
+# Clone Skylight Panel (use Pelican for now until fork is ready)
 echo -e "${YELLOW}Cloning Skylight Panel...${NC}"
-sudo -u skylight git clone https://github.com/pelican-dev/panel.git 
-/var/www/skylight/panel
-sudo -u skylight git checkout skylight-main || git checkout main
+sudo -u skylight git clone https://github.com/pelican-dev/panel.git /var/www/skylight/panel
+cd /var/www/skylight/panel
+sudo -u skylight git checkout main
 
 # Install Composer deps
 echo -e "${YELLOW}Running Composer...${NC}"
@@ -94,7 +94,7 @@ sudo -u skylight php artisan p:environment:database
 crontab -u skylight -l 2>/dev/null || echo "* * * * * php /var/www/skylight/panel/artisan schedule:run >> /dev/null 2>&1" | crontab -u skylight -
 systemctl enable --now redis-server
 
-# Wings (daemon)
+# Wings (daemon) - use Pelican binary for now
 echo -e "${YELLOW}Installing Skylight Wings...${NC}"
 mkdir -p /etc/skylight
 curl -L https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_amd64 -o /usr/local/bin/skylight-wings
@@ -152,7 +152,7 @@ nginx -t && systemctl reload nginx
 
 # SSL with Let's Encrypt (optional but automatic)
 echo -e "${YELLOW}Setting up SSL (this will ask for your email)...${NC}"
-certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "SSL setup failed or skipped (running on HTTP)"
+certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
 
 # Final permissions
 chown -R skylight:www-data /var/www/skylight
@@ -163,9 +163,9 @@ echo
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                SKYLIGHT IS NOW LIVE!                        ║"
 echo "║                                                             ║"
-echo "║   Panel URL: https://$DOMAIN                                      ║
+echo "║   Panel URL: https://$DOMAIN                                ║"
 echo "║   First user: admin@admin.com                               ║"
-echo "║   Password :  admin123   (CHANGE THIS IMMEDIATELY!)         ║"
+echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)           ║"
 echo "║                                                             ║"
 echo "║   Wings is running — add this node in the admin panel       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
