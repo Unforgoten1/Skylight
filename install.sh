@@ -157,6 +157,15 @@ mysql -e "FLUSH PRIVILEGES;"
 cd /var/www/skylight/panel
 sudo -u skylight php artisan migrate --seed --force
 
+# Set permissions and clear cache
+echo -e "${YELLOW}Setting permissions and clearing cache...${NC}"
+chown -R skylight:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+sudo -u skylight php artisan optimize:clear
+sudo -u skylight php artisan config:cache
+sudo -u skylight php artisan view:cache
+systemctl restart php8.3-fpm nginx
+
 # Queue worker & scheduler
 crontab -u skylight -l 2>/dev/null || echo "* * * * * php /var/www/skylight/panel/artisan schedule:run >> /dev/null 2>&1" | crontab -u skylight -
 systemctl enable --now redis-server
@@ -220,11 +229,21 @@ nginx -t && systemctl reload nginx
 if [[ $SETUP_SSL == true ]]; then
     echo -e "${YELLOW}Setting up SSL...${NC}"
     certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
+else
+    # Force http in .env if using IP
+    sudo -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" .env
+    sudo -u skylight php artisan optimize:clear
+    systemctl restart nginx
 fi
 
 # Final permissions
 chown -R skylight:www-data /var/www/skylight
 chmod -R 755 /var/www/skylight
+
+# Create initial admin user
+echo -e "${YELLOW}Creating initial admin user...${NC}"
+cd /var/www/skylight/panel
+sudo -u skylight php artisan p:user:make
 
 # Done
 echo
@@ -232,14 +251,13 @@ echo "╔═══════════════════════�
 echo "║                SKYLIGHT IS NOW LIVE!                        ║"
 echo "║                                                             ║"
 echo "║   Panel URL: $PROTOCOL://$DOMAIN                                ║"
-echo "║   First user: admin@admin.com                               ║"
-echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)           ║"
+echo "║   Use the credentials you just created to log in.           ║"
 echo "║                                                             ║"
 echo "║   Wings is running — add this node in the admin panel       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 echo "Next steps:"
-echo "1. Log in → change password → delete default admin later"
+echo "1. Log in with your new user credentials"
 echo "2. Admin → Nodes → Create new node (use this server's IP)"
 echo "3. Start deploying servers!"
 echo "4. Reboot server to apply kernel update (optional but recommended)"
