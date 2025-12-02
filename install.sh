@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.6                                     ║"
+echo "║          Version: v2.1.7                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -37,8 +37,12 @@ read use_domain
 if [[ $use_domain == "y" ]]; then
     echo -e "${YELLOW}Enter your domain (e.g., example.com):${NC}"
     read DOMAIN
+    PROTOCOL="https"
+    SETUP_SSL=true
 else
     DOMAIN=$(curl -4 -s ifconfig.me)  # Force IPv4
+    PROTOCOL="http"
+    SETUP_SSL=false
 fi
 
 # System update
@@ -126,7 +130,7 @@ sudo -u skylight yarn run build
 sudo -u skylight cp .env.example .env
 sudo -u skylight php artisan key:generate
 
-sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|g" .env
+sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=$PROTOCOL://$DOMAIN|g" .env
 sudo -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
 sudo -u skylight sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|g" .env
 sudo -u skylight sed -i "s|^DB_PORT=.*|DB_PORT=3306|g" .env
@@ -212,9 +216,11 @@ ln -sf /etc/nginx/sites-available/skylight /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
-# SSL with Let's Encrypt (optional but automatic)
-echo -e "${YELLOW}Setting up SSL...${NC}"
-certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
+# SSL with Let's Encrypt (only if using domain)
+if [[ $SETUP_SSL == true ]]; then
+    echo -e "${YELLOW}Setting up SSL...${NC}"
+    certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
+fi
 
 # Final permissions
 chown -R skylight:www-data /var/www/skylight
@@ -225,7 +231,7 @@ echo
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                SKYLIGHT IS NOW LIVE!                        ║"
 echo "║                                                             ║"
-echo "║   Panel URL: https://$DOMAIN                                ║"
+echo "║   Panel URL: $PROTOCOL://$DOMAIN                                ║"
 echo "║   First user: admin@admin.com                               ║"
 echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)           ║"
 echo "║                                                             ║"
