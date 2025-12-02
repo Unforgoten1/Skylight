@@ -170,13 +170,13 @@ chmod -R 755 /var/www/skylight
 # Done
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                SKYLIGHT IS NOW LIVE!                        ║"
-echo "║                                                             ║"
-echo "║   Panel URL: https://$DOMAIN                                ║"
-echo "║   First user: admin@admin.com                               ║"
-echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)           ║"
-echo "║                                                             ║"
-echo "║   Wings is running — add this node in the admin panel       ║"
+echo "║                SKYLIGHT IS NOW LIVE!                         ║"
+echo "║                                                              ║"
+echo "║   Panel URL: https://$DOMAIN                                 ║"
+echo "║   First user: admin@admin.com                                ║"
+echo "║   Password: admin123   (CHANGE THIS IMMEDIATELY!)            ║"
+echo "║                                                              ║"
+echo "║   Wings is running — add this node in the admin panel        ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 echo "Next steps:"
