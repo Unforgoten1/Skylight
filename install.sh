@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.5                                     ║"
+echo "║          Version: v2.1.6                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -29,6 +29,16 @@ fi
 if ! command -v curl &> /dev/null || ! command -v wget &> /dev/null; then
     echo -e "${YELLOW}Installing curl and wget...${NC}"
     apt update && apt install -y curl wget
+fi
+
+# Prompt for domain or IP
+echo -e "${YELLOW}Do you want to use a custom domain (y) or the server's IPv4 address (n)? (y/n):${NC}"
+read use_domain
+if [[ $use_domain == "y" ]]; then
+    echo -e "${YELLOW}Enter your domain (e.g., example.com):${NC}"
+    read DOMAIN
+else
+    DOMAIN=$(curl -4 -s ifconfig.me)  # Force IPv4
 fi
 
 # System update
@@ -115,11 +125,6 @@ sudo -u skylight yarn run build
 # Environment setup
 sudo -u skylight cp .env.example .env
 sudo -u skylight php artisan key:generate
-
-DOMAIN=$(curl -s ifconfig.me)
-if [[ $DOMAIN == *":"* ]]; then
-    DOMAIN="[$DOMAIN]"
-fi
 
 sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|g" .env
 sudo -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
@@ -208,7 +213,7 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
 # SSL with Let's Encrypt (optional but automatic)
-echo -e "${YELLOW}Setting up SSL (this will ask for your email if interactive)...${NC}"
+echo -e "${YELLOW}Setting up SSL...${NC}"
 certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL setup failed or skipped (running on HTTP)${NC}"
 
 # Final permissions
