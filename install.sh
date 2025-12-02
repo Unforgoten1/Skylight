@@ -7,8 +7,8 @@
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                  S K Y L I G H T   v2.0.0                   ║"
-echo "║          The Pelican fork that actually feels next-gen      ║"
+echo "║                  S K Y L I G H T   v2.0.0                    ║"
+echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
