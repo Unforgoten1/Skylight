@@ -58,8 +58,7 @@ fi
 
 # Clone Skylight Panel (our fork)
 echo -e "${YELLOW}Cloning Skylight Panel...${NC}"
-sudo -u skylight git clone https://github.com/skylight-dev/panel.git /var/www/skylight/panel
-cd /var/www/skylight/panel
+sudo -u skylight git clone https://github.com/pelican-dev/panel.git /var/www/skylight/panel
 sudo -u skylight git checkout skylight-main || git checkout main
 
 # Install Composer deps
