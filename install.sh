@@ -58,7 +58,8 @@ fi
 
 # Clone Skylight Panel (our fork)
 echo -e "${YELLOW}Cloning Skylight Panel...${NC}"
-sudo -u skylight git clone https://github.com/pelican-dev/panel.git /var/www/skylight/panel
+sudo -u skylight git clone https://github.com/pelican-dev/panel.git 
+/var/www/skylight/panel
 sudo -u skylight git checkout skylight-main || git checkout main
 
 # Install Composer deps
@@ -96,7 +97,7 @@ systemctl enable --now redis-server
 # Wings (daemon)
 echo -e "${YELLOW}Installing Skylight Wings...${NC}"
 mkdir -p /etc/skylight
-curl -L https://github.com/skylight-dev/wings/releases/latest/download/wings_linux_amd64 -o /usr/local/bin/skylight-wings
+curl -L https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_amd64 -o /usr/local/bin/skylight-wings
 chmod +x /usr/local/bin/skylight-wings
 
 cat > /etc/systemd/system/skylight-wings.service <<EOF
