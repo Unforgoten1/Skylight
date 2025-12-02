@@ -41,11 +41,12 @@ apt install -y software-properties-common ca-certificates lsb-release apt-transp
     gnupg2 ubuntu-keyring tar unzip git nginx mariadb-server redis-server \
     certbot python3-certbot-nginx composer
 
-# PHP 8.3 (Pelican loves it) - explicit list to avoid any expansion issues
-echo -e "${YELLOW}Adding PHP 8.3 repository...${NC}"
-wget -qO- https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/sury-php.gpg
-echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
+# PHP 8.3 via official PPA (better for Ubuntu)
+echo -e "${YELLOW}Adding PHP PPA repository...${NC}"
+add-apt-repository ppa:ondrej/php -y
 apt update
+
+# Install PHP 8.3 packages explicitly
 apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis
 
 # Node 22 (bumped for your system; Pelican works fine with it)
@@ -182,5 +183,6 @@ echo "Next steps:"
 echo "1. Log in → change password → delete default admin later"
 echo "2. Admin → Nodes → Create new node (use this server's IP)"
 echo "3. Start deploying servers!"
+echo "4. Reboot server to apply kernel update (optional but recommended)"
 
 exit 0
