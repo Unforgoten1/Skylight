@@ -49,8 +49,14 @@ echo -e "${YELLOW}Adding PHP PPA repository...${NC}"
 add-apt-repository ppa:ondrej/php -y
 apt update || true  # Non-fatal in case of warnings
 
-# Install PHP 8.3 packages explicitly
-apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis
+# Install PHP 8.3 packages explicitly (added sqlite3 for Sushi)
+apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis php8.3-sqlite3
+
+# Verify pdo_sqlite is enabled
+if ! php -m | grep -q pdo_sqlite; then
+    echo -e "${RED}pdo_sqlite extension not enabled! Check PHP config.${NC}"
+    exit 1
+fi
 
 # Node 22 (bumped for your system; Pelican works fine with it)
 echo -e "${YELLOW}Installing Node.js 22...${NC}"
