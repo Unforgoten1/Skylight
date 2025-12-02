@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.3                                     ║"
+echo "║          Version: v2.1.4                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -116,6 +116,20 @@ sudo -u skylight yarn run build
 sudo -u skylight cp .env.example .env
 sudo -u skylight php artisan key:generate
 
+DOMAIN=$(curl -s ifconfig.me)
+
+sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|g" .env
+sudo -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
+sudo -u skylight sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|g" .env
+sudo -u skylight sed -i "s|^DB_PORT=.*|DB_PORT=3306|g" .env
+sudo -u skylight sed -i "s|^DB_DATABASE=.*|DB_DATABASE=skylight|g" .env
+sudo -u skylight sed -i "s|^DB_USERNAME=.*|DB_USERNAME=skylight|g" .env
+sudo -u skylight sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=SuperSecureRandomPass123!|g" .env
+sudo -u skylight sed -i "s|^CACHE_DRIVER=.*|CACHE_DRIVER=redis|g" .env
+sudo -u skylight sed -i "s|^SESSION_DRIVER=.*|SESSION_DRIVER=redis|g" .env
+sudo -u skylight sed -i "s|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|g" .env
+sudo -u skylight sed -i "s|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|g" .env
+
 # Database
 echo -e "${YELLOW}Setting up MariaDB...${NC}"
 systemctl enable --now mariadb redis-server
@@ -130,24 +144,6 @@ mysql -e "FLUSH PRIVILEGES;"
 # Run migrations & seed
 cd /var/www/skylight/panel
 sudo -u skylight php artisan migrate --seed --force
-
-# Non-interactive environment setup
-DOMAIN=$(curl -s ifconfig.me)
-sudo -u skylight php artisan p:environment:setup <<EOF
-$DOMAIN
-UTC
-redis
-redis
-redis
-EOF
-
-sudo -u skylight php artisan p:environment:database <<EOF
-127.0.0.1
-3306
-skylight
-skylight
-SuperSecureRandomPass123!
-EOF
 
 # Queue worker & scheduler
 crontab -u skylight -l 2>/dev/null || echo "* * * * * php /var/www/skylight/panel/artisan schedule:run >> /dev/null 2>&1" | crontab -u skylight -
