@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.0.4                                     ║"
+echo "║          Version: v2.0.5                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -53,15 +53,15 @@ apt update || true  # Non-fatal in case of warnings
 # Install PHP 8.3 packages explicitly (added sqlite3 for Sushi)
 apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath php8.3-redis php8.3-sqlite3
 
-# Enable extensions for CLI and FPM
+# Enable extensions (simplified syntax for all SAPI)
 echo -e "${YELLOW}Enabling PHP extensions...${NC}"
-phpenmod -v 8.3 -s cli sqlite3 pdo_sqlite
-phpenmod -v 8.3 -s fpm sqlite3 pdo_sqlite
+phpenmod sqlite3
+phpenmod pdo_sqlite
 systemctl restart php8.3-fpm
 
 # Verify pdo_sqlite is enabled
 if ! php -m | grep -q pdo_sqlite; then
-    echo -e "${RED}pdo_sqlite extension not enabled! Check PHP config.${NC}"
+    echo -e "${RED}pdo_sqlite extension not enabled! Check PHP config with 'php -m'${NC}"
     exit 1
 fi
 
