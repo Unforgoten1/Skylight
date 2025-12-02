@@ -8,7 +8,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.0.7                                     ║"
+echo "║          Version: v2.0.8                                     ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -84,6 +84,10 @@ fi
 # Clean existing installation directory if it exists
 echo -e "${YELLOW}Cleaning existing Skylight directory if present...${NC}"
 rm -rf /var/www/skylight
+
+# Create the directory and set ownership
+mkdir -p /var/www/skylight
+chown skylight:skylight /var/www/skylight
 
 # Clone Skylight Panel (use Pelican for now until fork is ready)
 echo -e "${YELLOW}Cloning Skylight Panel...${NC}"
