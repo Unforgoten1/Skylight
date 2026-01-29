@@ -226,9 +226,9 @@ else
 fi
 
 # Final permissions
-mkdir /var/www/skylight
-chown -R skylight:www-data /var/www/skylight
-chmod -R 755 /var/www/skylight
+sudo mkdir /var/www/skylight
+sudo chown -R skylight:www-data /var/www/skylight
+sudo chmod -R 755 /var/www/skylight
 
 # Create first admin user
 echo -e "${YELLOW}Creating your admin account (follow the prompts)...${NC}"
