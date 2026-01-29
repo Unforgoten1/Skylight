@@ -226,6 +226,7 @@ else
 fi
 
 # Final permissions
+mkdir /var/www/skylight
 chown -R skylight:www-data /var/www/skylight
 chmod -R 755 /var/www/skylight
 
