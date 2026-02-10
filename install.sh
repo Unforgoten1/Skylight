@@ -1,14 +1,15 @@
 #!/bin/bash
 # ===================================================================
 #  Skylight Installer — One-click Pelican fork (December 2025)
-#  Just run: bash <(curl -sSL https://raw.githubusercontent.com/Unforgoten1/Skylight/main/install.sh)
+#  Modified: install location changed to /Skylight
+#  Just run: bash <(curl -sSL https://raw.githubusercontent.com/.../install.sh)
 # ===================================================================
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.7                                     ║"
+echo "║          Version: v2.1.7    |   Install path: /Skylight      ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -65,19 +66,19 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 npm install -g yarn
 
-# Create skylight user
+# Create skylight user (still using same user & home)
 if ! id "skylight" &>/dev/null; then
-    useradd -r -m -d /var/www/skylight -s /bin/bash skylight
+    useradd -r -m -d /Skylight -s /bin/bash skylight
 fi
 
 # Clean old install
 echo -e "${YELLOW}Cleaning old install...${NC}"
-rm -rf /var/www/skylight
+rm -rf /Skylight
 
 # Clone Panel
 echo -e "${YELLOW}Cloning Panel...${NC}"
-sudo -u skylight git clone https://github.com/pelican-dev/panel.git /var/www/skylight/panel
-cd /var/www/skylight/panel
+sudo -u skylight git clone https://github.com/pelican-dev/panel.git /Skylight/panel
+cd /Skylight/panel
 sudo -u skylight git checkout main
 
 # Composer + Yarn
@@ -113,20 +114,21 @@ mysql -e "GRANT ALL PRIVILEGES ON skylight.* TO 'skylight'@'127.0.0.1';"
 mysql -e "FLUSH PRIVILEGES;"
 
 # Migrate & seed
-cd /var/www/skylight/panel
+cd /Skylight/panel
 sudo -u skylight php artisan migrate --seed --force
 
 # Permissions & cache
 echo -e "${YELLOW}Fixing permissions & cache...${NC}"
-chown -R skylight:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+chown -R skylight:www-data /Skylight
+chmod -R 755 /Skylight
+chmod -R 775 /Skylight/storage /Skylight/bootstrap/cache
 sudo -u skylight php artisan optimize:clear
 sudo -u skylight php artisan config:cache
 sudo -u skylight php artisan view:cache
 systemctl restart php8.3-fpm nginx
 
 # Crontab
-(crontab -u skylight -l 2>/dev/null || true; echo "* * * * * php /var/www/skylight/panel/artisan schedule:run >> /dev/null 2>&1") | crontab -u skylight -
+(crontab -u skylight -l 2>/dev/null || true; echo "* * * * * php /Skylight/panel/artisan schedule:run >> /dev/null 2>&1") | crontab -u skylight -
 
 # Docker (required for Wings)
 echo -e "${YELLOW}Installing Docker...${NC}"
@@ -192,7 +194,7 @@ server {
     listen 80;
     server_name $DOMAIN _;
 
-    root /var/www/skylight/panel/public;
+    root /Skylight/panel/public;
     index index.php;
 
     location / {
@@ -220,35 +222,38 @@ if [[ $SSL == true ]]; then
     certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL failed (will still work on HTTP)${NC}"
 else
     # Force HTTP for IP installs
-    sudo -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" .env
+    sudo -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" /Skylight/panel/.env
     sudo -u skylight php artisan optimize:clear
     systemctl restart nginx
 fi
 
-# Final permissions
-sudo mkdir /var/www/skylight
-sudo chown -R skylight:www-data /var/www/skylight
-sudo chmod -R 755 /var/www/skylight
+# Final permissions (already mostly set above, just double-check)
+chown -R skylight:www-data /Skylight
+chmod -R 755 /Skylight
+find /Skylight -type f -exec chmod 644 {} \;
+find /Skylight -type d -exec chmod 755 {} \;
+chmod -R 775 /Skylight/storage /Skylight/bootstrap/cache
 
 # Create first admin user
 echo -e "${YELLOW}Creating your admin account (follow the prompts)...${NC}"
-cd /var/www/skylight/panel
+cd /Skylight/panel
 sudo -u skylight php artisan p:user:make
 
 # Final message
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                SKYLIGHT IS NOW INSTALLED!                   ║"
-echo "║                                                             ║"
-echo "║   Panel URL: $PROTOCOL://$DOMAIN                            ║"
-echo "║   Login with the account you just created                   ║"
-echo "║                                                             ║"
-echo "║   Wings is installed — next steps:                          ║"
-echo "║   1. Admin → Nodes → Create New Node                        ║"
-echo "║   2. Copy the token → paste into:                         ║"
-echo "║       /etc/skylight/config.yml (replace PASTE_YOUR_TOKEN_HERE) ║"
-echo "║   3. Run: systemctl restart wings                           ║"
-echo "║   Node will turn green in less than 30 seconds              ║"
+echo "║                SKYLIGHT IS NOW INSTALLED!                    ║"
+echo "║                                                              ║"
+echo "║   Panel URL: $PROTOCOL://$DOMAIN                             ║"
+echo "║   Login with the account you just created                    ║"
+echo "║                                                              ║"
+echo "║   Install location: /Skylight/panel                          ║" 
+echo "║   Wings is installed — next steps:                           ║"
+echo "║   1. Admin → Nodes → Create New Node                         ║"
+echo "║   2. Copy the token → paste into:                            ║"
+echo "║      /etc/skylight/config.yml (replace PASTE_YOUR_TOKEN_HERE)║"
+echo "║   3. Run: systemctl restart wings                            ║"
+echo "║   Node will turn green in less than 30 seconds               ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
