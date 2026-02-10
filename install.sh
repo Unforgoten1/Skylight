@@ -1,37 +1,32 @@
 #!/bin/bash
 # ===================================================================
-#  Skylight Installer — One-click Pelican fork (December 2025)
-#  Install location: /Skylight (root-level — non-standard but supported)
-#  Fixed: php8.3-intl + proper /Skylight setup + Yarn .yarnrc & cache fix
+#  Skylight Installer — One-click Pelican fork
+#  Fixed Yarn home confusion + .yarnrc issues by using standard home dir
 # ===================================================================
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.7    |   Install path: /Skylight      ║"
-echo "║          Author: Unforgotten1                                ║"
-echo "║          The Pelican fork that actually feels next-gen       ║"
+echo "║          Install path: /Skylight/panel                       ║"
+echo "║          User home:    /home/skylight                        ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Root check
 if [[ $EUID -ne 0 ]]; then
    echo -e "${RED}This script must be run as root${NC}"
    exit 1
 fi
 
-# Prompt: Domain or IPv4?
-echo -e "${YELLOW}Use a domain (y) or just the server's IPv4 address (n)? (y/n):${NC}"
+echo -e "${YELLOW}Use a domain (y) or server's IPv4 (n)? (y/n):${NC}"
 read use_domain
 if [[ $use_domain == "y" ]]; then
-    echo -e "${YELLOW}Enter your domain (e.g. panel.example.com):${NC}"
+    echo -e "${YELLOW}Enter domain (e.g. panel.example.com):${NC}"
     read DOMAIN
     PROTOCOL="https"
     SSL=true
@@ -41,16 +36,11 @@ else
     SSL=false
 fi
 
-# System update
-echo -e "${YELLOW}Updating system...${NC}"
 apt update && apt upgrade -y
 
-# Base packages
-echo -e "${YELLOW}Installing base packages...${NC}"
 apt install -y software-properties-common ca-certificates lsb-release apt-transport-https \
     gnupg2 curl wget git unzip nginx mariadb-server redis-server certbot python3-certbot-nginx composer
 
-# PHP 8.3 + required extensions (including intl for Filament)
 echo -e "${YELLOW}Installing PHP 8.3 + extensions...${NC}"
 add-apt-repository ppa:ondrej/php -y
 apt update
@@ -60,63 +50,57 @@ update-alternatives --set php /usr/bin/php8.3
 phpenmod -v 8.3 intl sqlite3 pdo_sqlite
 systemctl restart php8.3-fpm
 
-# Node.js 22 + Yarn
 echo -e "${YELLOW}Installing Node.js 22 + Yarn...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 npm install -g yarn
 
-# Create skylight user
+# ── Critical fix: standard home directory ───────────────────────────────
 if ! id "skylight" &>/dev/null; then
-    useradd -r -m -d /Skylight -s /bin/bash skylight
+    useradd -r -m -d /home/skylight -s /bin/bash skylight
+else
+    usermod -d /home/skylight -m skylight 2>/dev/null || true
 fi
 
-# Clean old install & prepare directory structure + Yarn fixes
-echo -e "${YELLOW}Preparing installation directory...${NC}"
+# Prepare application directory
 rm -rf /Skylight
 mkdir -p /Skylight
 chown skylight:www-data /Skylight
 chmod 755 /Skylight
 
-# Prevent Yarn ENOENT on .yarnrc and cache/global folder issues
-touch /Skylight/.yarnrc
-chown skylight:www-data /Skylight/.yarnrc
-chmod 644 /Skylight/.yarnrc
+# Yarn fixes in actual home directory
+mkdir -p /home/skylight/.cache/yarn /home/skylight/.yarn
+touch /home/skylight/.yarnrc
+chown -R skylight:www-data /home/skylight/.yarn /home/skylight/.cache /home/skylight/.yarnrc
+chmod -R 755 /home/skylight/.yarn /home/skylight/.cache
+chmod 644 /home/skylight/.yarnrc
 
-mkdir -p /Skylight/.yarn /Skylight/.cache/yarn
-chown -R skylight:www-data /Skylight/.yarn /Skylight/.cache
-chmod -R 755 /Skylight/.yarn /Skylight/.cache
-
-# Clone Panel
 echo -e "${YELLOW}Cloning Panel...${NC}"
-sudo -u skylight git clone https://github.com/pelican-dev/panel.git /Skylight/panel
+sudo -H -u skylight git clone https://github.com/pelican-dev/panel.git /Skylight/panel
 cd /Skylight/panel
-sudo -u skylight git checkout main
+sudo -H -u skylight git checkout main
 
-# Composer + Yarn
 echo -e "${YELLOW}Installing dependencies...${NC}"
-sudo -u skylight composer install --no-dev --optimize-autoloader
-sudo -u skylight yarn install
-sudo -u skylight yarn run build
+sudo -H -u skylight composer install --no-dev --optimize-autoloader
+sudo -H -u skylight yarn install
+sudo -H -u skylight yarn run build
 
 # .env setup
-sudo -u skylight cp .env.example .env
-sudo -u skylight php artisan key:generate
+sudo -H -u skylight cp .env.example .env
+sudo -H -u skylight php artisan key:generate
 
-sudo -u skylight sed -i "s|^APP_URL=.*|APP_URL=$PROTOCOL://$DOMAIN|g" .env
-sudo -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
-sudo -u skylight sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|g" .env
-sudo -u skylight sed -i "s|^DB_PORT=.*|DB_PORT=3306|g" .env
-sudo -u skylight sed -i "s|^DB_DATABASE=.*|DB_DATABASE=skylight|g" .env
-sudo -u skylight sed -i "s|^DB_USERNAME=.*|DB_USERNAME=skylight|g" .env
-sudo -u skylight sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=SuperSecureRandomPass123!|g" .env
-sudo -u skylight sed -i "s|^CACHE_DRIVER=.*|CACHE_DRIVER=redis|g" .env
-sudo -u skylight sed -i "s|^SESSION_DRIVER=.*|SESSION_DRIVER=redis|g" .env
-sudo -u skylight sed -i "s|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|g" .env
-sudo -u skylight sed -i "s|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|g" .env
+sudo -H -u skylight sed -i "s|^APP_URL=.*|APP_URL=$PROTOCOL://$DOMAIN|g" .env
+sudo -H -u skylight sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
+sudo -H -u skylight sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|g" .env
+sudo -H -u skylight sed -i "s|^DB_DATABASE=.*|DB_DATABASE=skylight|g" .env
+sudo -H -u skylight sed -i "s|^DB_USERNAME=.*|DB_USERNAME=skylight|g" .env
+sudo -H -u skylight sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=SuperSecureRandomPass123!|g" .env
+sudo -H -u skylight sed -i "s|^CACHE_DRIVER=.*|CACHE_DRIVER=redis|g" .env
+sudo -H -u skylight sed -i "s|^SESSION_DRIVER=.*|SESSION_DRIVER=redis|g" .env
+sudo -H -u skylight sed -i "s|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|g" .env
+sudo -H -u skylight sed -i "s|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|g" .env
 
-# MariaDB setup
-echo -e "${YELLOW}Configuring MariaDB...${NC}"
+# MariaDB
 systemctl enable --now mariadb redis-server
 mysql -e "DROP DATABASE IF EXISTS skylight;"
 mysql -e "CREATE DATABASE skylight;"
@@ -125,30 +109,25 @@ mysql -e "CREATE USER 'skylight'@'127.0.0.1' IDENTIFIED BY 'SuperSecureRandomPas
 mysql -e "GRANT ALL PRIVILEGES ON skylight.* TO 'skylight'@'127.0.0.1';"
 mysql -e "FLUSH PRIVILEGES;"
 
-# Migrate & seed
 cd /Skylight/panel
-sudo -u skylight php artisan migrate --seed --force
+sudo -H -u skylight php artisan migrate --seed --force
 
-# Permissions & cache
-echo -e "${YELLOW}Fixing permissions & cache...${NC}"
+# Permissions
 chown -R skylight:www-data /Skylight
 chmod -R 755 /Skylight
 chmod -R 775 /Skylight/storage /Skylight/bootstrap/cache
-sudo -u skylight php artisan optimize:clear
-sudo -u skylight php artisan config:cache
-sudo -u skylight php artisan view:cache
+sudo -H -u skylight php artisan optimize:clear
+sudo -H -u skylight php artisan config:cache
+sudo -H -u skylight php artisan view:cache
 systemctl restart php8.3-fpm nginx
 
 # Crontab
 (crontab -u skylight -l 2>/dev/null || true; echo "* * * * * php /Skylight/panel/artisan schedule:run >> /dev/null 2>&1") | crontab -u skylight -
 
-# Docker
-echo -e "${YELLOW}Installing Docker...${NC}"
+# Docker + Wings (unchanged from previous)
 curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
 
-# Wings
-echo -e "${YELLOW}Installing Wings v1.0.0-beta19...${NC}"
 mkdir -p /etc/skylight /var/lib/skylight /var/log/skylight
 curl -L -o /usr/local/bin/wings https://github.com/pelican-dev/wings/releases/download/v1.0.0-beta19/wings_linux_amd64
 chmod +x /usr/local/bin/wings
@@ -199,7 +178,6 @@ EOF
 systemctl start wings
 
 # Nginx
-echo -e "${YELLOW}Configuring Nginx...${NC}"
 cat > /etc/nginx/sites-available/skylight <<EOF
 server {
     listen 80;
@@ -227,34 +205,24 @@ ln -sf /etc/nginx/sites-available/skylight /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
-# SSL
 if [[ $SSL == true ]]; then
-    echo -e "${YELLOW}Installing Let's Encrypt SSL...${NC}"
-    certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL failed (will still work on HTTP)${NC}"
+    certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || true
 else
-    sudo -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" /Skylight/panel/.env
-    sudo -u skylight php artisan optimize:clear
+    sudo -H -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" /Skylight/panel/.env
+    sudo -H -u skylight php artisan optimize:clear
     systemctl restart nginx
 fi
 
-# Create admin user
-echo -e "${YELLOW}Creating your admin account (follow the prompts)...${NC}"
+echo -e "${YELLOW}Creating admin account...${NC}"
 cd /Skylight/panel
-sudo -u skylight php artisan p:user:make
+sudo -H -u skylight php artisan p:user:make
 
-# Final message
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                SKYLIGHT IS NOW INSTALLED!                   ║"
-echo "║                                                             ║"
-echo "║   Panel URL:          $PROTOCOL://$DOMAIN                   ║"
-echo "║   Install location:   /Skylight/panel                       ║"
-echo "║   Login with the account you just created                   ║"
-echo "║                                                             ║"
-echo "║   Wings next steps:                                         ║"
-echo "║   1. Admin → Nodes → Create New Node                        ║"
-echo "║   2. Copy token → edit /etc/skylight/config.yml             ║"
-echo "║   3. systemctl restart wings                                ║"
+echo "║                SKYLIGHT INSTALLED SUCCESSFULLY               ║"
+echo "║   Panel:     $PROTOCOL://$DOMAIN                             ║"
+echo "║   Location:  /Skylight/panel                                 ║"
+echo "║   Next:      Create node in panel & paste token              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
