@@ -1,7 +1,7 @@
 #!/bin/bash
 # ===================================================================
 #  Skylight Installer — One-click Pelican fork (December 2025)
-#  Modified: install location changed to /Skylight
+#  Install location: /Skylight (root-level — non-standard but supported)
 #  Just run: bash <(curl -sSL https://raw.githubusercontent.com/.../install.sh)
 # ===================================================================
 
@@ -66,16 +66,19 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 npm install -g yarn
 
-# Create skylight user (still using same user & home)
+# Create skylight user
 if ! id "skylight" &>/dev/null; then
     useradd -r -m -d /Skylight -s /bin/bash skylight
 fi
 
-# Clean old install
-echo -e "${YELLOW}Cleaning old install...${NC}"
+# Clean old install & prepare directory structure (critical fix)
+echo -e "${YELLOW}Preparing installation directory...${NC}"
 rm -rf /Skylight
+mkdir -p /Skylight
+chown skylight:www-data /Skylight
+chmod 755 /Skylight
 
-# Clone Panel
+# Clone Panel (now possible because /Skylight is owned by skylight)
 echo -e "${YELLOW}Cloning Panel...${NC}"
 sudo -u skylight git clone https://github.com/pelican-dev/panel.git /Skylight/panel
 cd /Skylight/panel
@@ -117,7 +120,7 @@ mysql -e "FLUSH PRIVILEGES;"
 cd /Skylight/panel
 sudo -u skylight php artisan migrate --seed --force
 
-# Permissions & cache
+# Permissions & cache (broad permissions first, then tighten where needed)
 echo -e "${YELLOW}Fixing permissions & cache...${NC}"
 chown -R skylight:www-data /Skylight
 chmod -R 755 /Skylight
@@ -163,7 +166,7 @@ EOF
 systemctl daemon-reload
 systemctl enable wings
 
-# Wings config template (user must paste token later)
+# Wings config template
 cat > /etc/skylight/config.yml <<EOF
 debug: false
 uuid: 11111111-1111-1111-1111-111111111111
@@ -221,20 +224,12 @@ if [[ $SSL == true ]]; then
     echo -e "${YELLOW}Installing Let's Encrypt SSL...${NC}"
     certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL failed (will still work on HTTP)${NC}"
 else
-    # Force HTTP for IP installs
     sudo -u skylight sed -i "s|^APP_URL=https://|APP_URL=http://|g" /Skylight/panel/.env
     sudo -u skylight php artisan optimize:clear
     systemctl restart nginx
 fi
 
-# Final permissions (already mostly set above, just double-check)
-chown -R skylight:www-data /Skylight
-chmod -R 755 /Skylight
-find /Skylight -type f -exec chmod 644 {} \;
-find /Skylight -type d -exec chmod 755 {} \;
-chmod -R 775 /Skylight/storage /Skylight/bootstrap/cache
-
-# Create first admin user
+# Final admin user creation
 echo -e "${YELLOW}Creating your admin account (follow the prompts)...${NC}"
 cd /Skylight/panel
 sudo -u skylight php artisan p:user:make
@@ -242,18 +237,17 @@ sudo -u skylight php artisan p:user:make
 # Final message
 echo
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                SKYLIGHT IS NOW INSTALLED!                    ║"
-echo "║                                                              ║"
-echo "║   Panel URL: $PROTOCOL://$DOMAIN                             ║"
-echo "║   Login with the account you just created                    ║"
-echo "║                                                              ║"
-echo "║   Install location: /Skylight/panel                          ║" 
-echo "║   Wings is installed — next steps:                           ║"
-echo "║   1. Admin → Nodes → Create New Node                         ║"
-echo "║   2. Copy the token → paste into:                            ║"
-echo "║      /etc/skylight/config.yml (replace PASTE_YOUR_TOKEN_HERE)║"
-echo "║   3. Run: systemctl restart wings                            ║"
-echo "║   Node will turn green in less than 30 seconds               ║"
+echo "║                SKYLIGHT IS NOW INSTALLED!                   ║"
+echo "║                                                             ║"
+echo "║   Panel URL:          $PROTOCOL://$DOMAIN                   ║"
+echo "║   Install location:   /Skylight/panel                       ║"
+echo "║   Login with the account you just created                   ║"
+echo "║                                                             ║"
+echo "║   Wings next steps:                                         ║"
+echo "║   1. Admin → Nodes → Create New Node                        ║"
+echo "║   2. Copy token → edit /etc/skylight/config.yml             ║"
+echo "║   3. systemctl restart wings                                ║"
+echo "║   Node should go online within ~30 seconds                  ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
