@@ -2,14 +2,14 @@
 # ===================================================================
 #  Skylight Installer — One-click Pelican fork (December 2025)
 #  Install location: /Skylight (root-level — non-standard but supported)
-#  Fixed: added php8.3-intl + proper /Skylight directory setup
+#  Fixed: php8.3-intl + proper /Skylight setup + Yarn .yarnrc & cache fix
 # ===================================================================
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.8    |   Install path: /Skylight      ║"
+echo "║          Version: v2.1.7    |   Install path: /Skylight      ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -71,12 +71,21 @@ if ! id "skylight" &>/dev/null; then
     useradd -r -m -d /Skylight -s /bin/bash skylight
 fi
 
-# Clean old install & prepare directory structure
+# Clean old install & prepare directory structure + Yarn fixes
 echo -e "${YELLOW}Preparing installation directory...${NC}"
 rm -rf /Skylight
 mkdir -p /Skylight
 chown skylight:www-data /Skylight
 chmod 755 /Skylight
+
+# Prevent Yarn ENOENT on .yarnrc and cache/global folder issues
+touch /Skylight/.yarnrc
+chown skylight:www-data /Skylight/.yarnrc
+chmod 644 /Skylight/.yarnrc
+
+mkdir -p /Skylight/.yarn /Skylight/.cache/yarn
+chown -R skylight:www-data /Skylight/.yarn /Skylight/.cache
+chmod -R 755 /Skylight/.yarn /Skylight/.cache
 
 # Clone Panel
 echo -e "${YELLOW}Cloning Panel...${NC}"
