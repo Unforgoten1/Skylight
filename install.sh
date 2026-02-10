@@ -2,14 +2,14 @@
 # ===================================================================
 #  Skylight Installer — One-click Pelican fork (December 2025)
 #  Install location: /Skylight (root-level — non-standard but supported)
-#  Just run: bash <(curl -sSL https://raw.githubusercontent.com/.../install.sh)
+#  Fixed: added php8.3-intl + proper /Skylight directory setup
 # ===================================================================
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                         S K Y L I G H T                      ║"
-echo "║          Version: v2.1.7    |   Install path: /Skylight      ║"
+echo "║          Version: v2.1.8    |   Install path: /Skylight      ║"
 echo "║          Author: Unforgotten1                                ║"
 echo "║          The Pelican fork that actually feels next-gen       ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -50,14 +50,14 @@ echo -e "${YELLOW}Installing base packages...${NC}"
 apt install -y software-properties-common ca-certificates lsb-release apt-transport-https \
     gnupg2 curl wget git unzip nginx mariadb-server redis-server certbot python3-certbot-nginx composer
 
-# PHP 8.3 (ondrej PPA)
-echo -e "${YELLOW}Installing PHP 8.3...${NC}"
+# PHP 8.3 + required extensions (including intl for Filament)
+echo -e "${YELLOW}Installing PHP 8.3 + extensions...${NC}"
 add-apt-repository ppa:ondrej/php -y
 apt update
-apt install -y php8.3 php8.3-{cli,fpm,mysql,zip,gd,mbstring,curl,xml,bcmath,redis,sqlite3}
+apt install -y php8.3 php8.3-{cli,fpm,mysql,zip,gd,mbstring,curl,xml,bcmath,redis,sqlite3,intl}
 
 update-alternatives --set php /usr/bin/php8.3
-phpenmod -v 8.3 sqlite3 pdo_sqlite
+phpenmod -v 8.3 intl sqlite3 pdo_sqlite
 systemctl restart php8.3-fpm
 
 # Node.js 22 + Yarn
@@ -71,14 +71,14 @@ if ! id "skylight" &>/dev/null; then
     useradd -r -m -d /Skylight -s /bin/bash skylight
 fi
 
-# Clean old install & prepare directory structure (critical fix)
+# Clean old install & prepare directory structure
 echo -e "${YELLOW}Preparing installation directory...${NC}"
 rm -rf /Skylight
 mkdir -p /Skylight
 chown skylight:www-data /Skylight
 chmod 755 /Skylight
 
-# Clone Panel (now possible because /Skylight is owned by skylight)
+# Clone Panel
 echo -e "${YELLOW}Cloning Panel...${NC}"
 sudo -u skylight git clone https://github.com/pelican-dev/panel.git /Skylight/panel
 cd /Skylight/panel
@@ -120,7 +120,7 @@ mysql -e "FLUSH PRIVILEGES;"
 cd /Skylight/panel
 sudo -u skylight php artisan migrate --seed --force
 
-# Permissions & cache (broad permissions first, then tighten where needed)
+# Permissions & cache
 echo -e "${YELLOW}Fixing permissions & cache...${NC}"
 chown -R skylight:www-data /Skylight
 chmod -R 755 /Skylight
@@ -133,18 +133,18 @@ systemctl restart php8.3-fpm nginx
 # Crontab
 (crontab -u skylight -l 2>/dev/null || true; echo "* * * * * php /Skylight/panel/artisan schedule:run >> /dev/null 2>&1") | crontab -u skylight -
 
-# Docker (required for Wings)
+# Docker
 echo -e "${YELLOW}Installing Docker...${NC}"
 curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
 
-# Wings — pinned stable version (v1.0.0-beta19)
-echo -e "${YELLOW}Installing Wings v1.0.0-beta19 (stable)...${NC}"
+# Wings
+echo -e "${YELLOW}Installing Wings v1.0.0-beta19...${NC}"
 mkdir -p /etc/skylight /var/lib/skylight /var/log/skylight
 curl -L -o /usr/local/bin/wings https://github.com/pelican-dev/wings/releases/download/v1.0.0-beta19/wings_linux_amd64
 chmod +x /usr/local/bin/wings
 
-cat > /etc/systemd/system/wings.service <<EOF
+cat > /etc/systemd/system/wings.service <<'EOF'
 [Unit]
 Description=Skylight Wings Daemon
 After=docker.service
@@ -166,7 +166,6 @@ EOF
 systemctl daemon-reload
 systemctl enable wings
 
-# Wings config template
 cat > /etc/skylight/config.yml <<EOF
 debug: false
 uuid: 11111111-1111-1111-1111-111111111111
@@ -219,7 +218,7 @@ ln -sf /etc/nginx/sites-available/skylight /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
-# SSL (only for domain)
+# SSL
 if [[ $SSL == true ]]; then
     echo -e "${YELLOW}Installing Let's Encrypt SSL...${NC}"
     certbot --nginx --non-interactive --agree-tos --redirect -d $DOMAIN -m admin@$DOMAIN || echo "${YELLOW}SSL failed (will still work on HTTP)${NC}"
@@ -229,7 +228,7 @@ else
     systemctl restart nginx
 fi
 
-# Final admin user creation
+# Create admin user
 echo -e "${YELLOW}Creating your admin account (follow the prompts)...${NC}"
 cd /Skylight/panel
 sudo -u skylight php artisan p:user:make
@@ -247,7 +246,6 @@ echo "║   Wings next steps:                                         ║"
 echo "║   1. Admin → Nodes → Create New Node                        ║"
 echo "║   2. Copy token → edit /etc/skylight/config.yml             ║"
 echo "║   3. systemctl restart wings                                ║"
-echo "║   Node should go online within ~30 seconds                  ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
